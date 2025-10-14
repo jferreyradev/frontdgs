@@ -1,230 +1,126 @@
 <script setup>
-import { useDgsApi } from '@/composables/useDgsApi.js'
-import { useFiltrosStore } from '@/stores/filtros'
-import SelectorMesAño from './SelectorMesAño.vue'
-import FiltrosActivos from './FiltrosActivos.vue'
+import { useDgsApi } from '@/composables/api/useDgsApi.js'
+import PanelFiltros from './filters/PanelFiltros.vue'
 import { onMounted, ref } from 'vue'
 
-const { verificarConexion, getPeriodoActivo, getTiposLiquidacion, getGruposReparticion } =
-  useDgsApi()
+const { verificarConexion, getPeriodoActivo } = useDgsApi()
 
 const data = ref(null)
 const periodo = ref(null)
-const tipos = ref(null)
-const grupos = ref(null)
-
-const idLiq = ref(null)
-const idGrupo = ref(null)
-
-// Datos del selector de mes y año
-const seleccionMesAño = ref({})
-const selectorMesAñoRef = ref(null)
-
-const filtrosStore = useFiltrosStore()
+const panelFiltrosRef = ref(null)
 
 async function carga() {
   data.value = await verificarConexion()
   periodo.value = await getPeriodoActivo()
-  tipos.value = await getTiposLiquidacion()
-  grupos.value = await getGruposReparticion()
-
-  // Actualizar el store con los datos obtenidos
-  if (periodo.value && periodo.value.length > 0) {
-    filtrosStore.setPeriodo(periodo.value[0])
-  }
-  if (tipos.value && tipos.value.length > 0) {
-    filtrosStore.setTipos(tipos.value[0])
-  }
-  if (grupos.value && grupos.value.length > 0) {
-    filtrosStore.setGrupos(grupos.value[0])
-  }
 }
 
 onMounted(() => {
   carga()
 })
 
-function verFiltros() {
-  console.log('Filtros Aplicados:')
-  console.log('Período seleccionado:', seleccionMesAño.value)
-  console.log('Tipo de Liquidación:', idLiq.value)
-  console.log('Grupo de Repartición:', idGrupo.value)
-
-  // Mostrar información detallada si hay selección de período
-  if (seleccionMesAño.value.mes && seleccionMesAño.value.año) {
-    console.log(`Período: ${seleccionMesAño.value.mesNombre} ${seleccionMesAño.value.año}`)
-    console.log(`Fechas: ${seleccionMesAño.value.fechaInicio} - ${seleccionMesAño.value.fechaFin}`)
-  }
+// Manejar eventos del panel de filtros
+function onFiltrosAplicados(filtros) {
+  console.log('Filtros aplicados desde PanelTest:', filtros)
+  // Aquí puedes agregar lógica adicional cuando se apliquen los filtros
 }
 
-// Función para manejar cambios en el selector de mes y año
-function onMesAñoCambiado(seleccion) {
-  seleccionMesAño.value = seleccion
-  console.log('Período actualizado:', seleccion)
+function onFiltrosCambiados(filtros) {
+  console.log('Filtros cambiados:', filtros)
+  // Aquí puedes agregar lógica adicional cuando cambien los filtros
 }
 
-// Funciones para limpiar filtros individuales
-function limpiarPeriodo() {
-  if (selectorMesAñoRef.value) {
-    selectorMesAñoRef.value.limpiarSeleccion()
-  }
-  seleccionMesAño.value = {}
+// Función para obtener filtros actuales (para uso externo)
+function obtenerFiltrosActuales() {
+  return panelFiltrosRef.value ? panelFiltrosRef.value.obtenerFiltros() : null
 }
 
-function limpiarTipoLiquidacion() {
-  idLiq.value = null
-}
-
-function limpiarGrupoReparticion() {
-  idGrupo.value = null
-}
-
-function limpiarTodosFiltros() {
-  if (selectorMesAñoRef.value) {
-    selectorMesAñoRef.value.limpiarSeleccion()
-  }
-  seleccionMesAño.value = {}
-  idLiq.value = null
-  idGrupo.value = null
-}
+// Exponer métodos públicos
+defineExpose({
+  obtenerFiltrosActuales,
+})
 </script>
 
 <template>
-  <div style="padding: 15px; max-width: 1200px; margin: 0 auto">
-    <h2 style="margin: 0 0 12px 0; font-size: 18px">Panel de Filtros</h2>
+  <div class="panel-test">
+    <h2 class="titulo">Panel de Control</h2>
 
-    <!-- Fila de filtros -->
-    <div
-      style="
-        display: flex;
-        gap: 10px;
-        align-items: end;
-        margin: 10px 0;
-        padding: 12px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-      "
-    >
-      <!-- Período -->
-      <div style="flex: 1; min-width: 180px">
-        <label
-          style="
-            display: block;
-            margin-bottom: 3px;
-            font-weight: bold;
-            color: #333;
-            font-size: 14px;
-          "
-        >
-          Período
-        </label>
-        <SelectorMesAño
-          ref="selectorMesAñoRef"
-          :año-minimo="2020"
-          :año-maximo="2030"
-          :auto-hoy="false"
-          @cambio="onMesAñoCambiado"
-        />
+    <!-- Componente de Filtros -->
+    <PanelFiltros
+      ref="panelFiltrosRef"
+      :auto-cargar="true"
+      @filtros-aplicados="onFiltrosAplicados"
+      @filtros-cambiados="onFiltrosCambiados"
+    />
+
+    <!-- Sección de información de conexión (opcional) -->
+    <div v-if="data || periodo" class="info-sistema">
+      <h3>Información del Sistema</h3>
+
+      <div v-if="data" class="info-conexion">
+        <h4>Estado de Conexión</h4>
+        <pre class="info-data">{{ data }}</pre>
       </div>
 
-      <!-- Tipo de Liquidación -->
-      <div style="flex: 1; min-width: 180px">
-        <label
-          style="
-            display: block;
-            margin-bottom: 3px;
-            font-weight: bold;
-            color: #333;
-            font-size: 14px;
-          "
-        >
-          Tipo de Liquidación
-        </label>
-        <select
-          v-model="idLiq"
-          style="
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 13px;
-          "
-        >
-          <option value="">Seleccione tipo</option>
-          <option
-            v-for="tipo in tipos"
-            :key="tipo['IDTIPOLIQUIDACION']"
-            :value="tipo['IDTIPOLIQUIDACION']"
-          >
-            {{ tipo['DESCRIPCION'] }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Grupo de Repartición -->
-      <div style="flex: 1; min-width: 180px">
-        <label
-          style="
-            display: block;
-            margin-bottom: 3px;
-            font-weight: bold;
-            color: #333;
-            font-size: 14px;
-          "
-        >
-          Grupo de Repartición
-        </label>
-        <select
-          v-model="idGrupo"
-          style="
-            width: 100%;
-            padding: 6px 8px;
-            border: 1px solid #ccc;
-            border-radius: 3px;
-            font-size: 13px;
-          "
-        >
-          <option value="">Seleccione grupo</option>
-          <option v-for="grupo in grupos" :key="grupo['IDGRUPO']" :value="grupo['IDGRUPO']">
-            {{ grupo['DESCRIPCION'] }}
-          </option>
-        </select>
-      </div>
-
-      <!-- Botón aplicar -->
-      <div style="flex: 0 0 auto">
-        <button
-          @click="verFiltros"
-          style="
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: bold;
-            height: 34px;
-            white-space: nowrap;
-          "
-        >
-          Aplicar Filtros
-        </button>
+      <div v-if="periodo" class="info-periodo">
+        <h4>Períodos Activos</h4>
+        <pre class="info-data">{{ periodo }}</pre>
       </div>
     </div>
-
-    <!-- Componente para mostrar filtros activos -->
-    <FiltrosActivos
-      :periodo="seleccionMesAño"
-      :tipo-liquidacion-id="idLiq"
-      :grupo-reparticion-id="idGrupo"
-      :tipos-liquidacion="tipos || []"
-      :grupos-reparticion="grupos || []"
-      @limpiar-periodo="limpiarPeriodo"
-      @limpiar-tipo-liquidacion="limpiarTipoLiquidacion"
-      @limpiar-grupo-reparticion="limpiarGrupoReparticion"
-      @limpiar-todos-filtros="limpiarTodosFiltros"
-    />
   </div>
 </template>
+
+<style scoped>
+.panel-test {
+  padding: 15px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.titulo {
+  margin: 0 0 15px 0;
+  font-size: 18px;
+  color: #333;
+}
+
+.info-sistema {
+  margin-top: 20px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 5px;
+}
+
+.info-sistema h3 {
+  margin: 0 0 15px 0;
+  font-size: 16px;
+  color: #495057;
+}
+
+.info-conexion,
+.info-periodo {
+  margin-bottom: 15px;
+}
+
+.info-conexion:last-child,
+.info-periodo:last-child {
+  margin-bottom: 0;
+}
+
+.info-conexion h4,
+.info-periodo h4 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.info-data {
+  background-color: #ffffff;
+  border: 1px solid #ced4da;
+  border-radius: 3px;
+  padding: 8px;
+  margin: 0;
+  font-size: 12px;
+  color: #495057;
+  overflow-x: auto;
+}
+</style>

@@ -1,14 +1,12 @@
 <template>
   <div>
-    <h1>Principal</h1>
-    <div>
-      <PanelTest></PanelTest>
-    </div>
+    <h1>Sistema de Filtros</h1>
+    <PanelFiltros />
   </div>
 </template>
 
 <script setup>
-import PanelTest from '../components/PanelTest.vue'
+import PanelFiltros from '../components/filters/PanelFiltros.vue'
 </script>
 
 <style scoped></style>

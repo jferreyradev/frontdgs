@@ -1,4 +1,3 @@
 // Exportación centralizada de todos los stores
-export { useCounterStore } from './counter.js'
-export { useFiltrosStore } from './filtros.js'
-export { usePeriodoStore } from './periodo.js'
+export { usePeriodoStore } from './filters/periodo.js'
+export { useFiltrosActivosStore } from './filters/filtrosActivos.js'

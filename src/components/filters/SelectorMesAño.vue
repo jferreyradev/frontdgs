@@ -31,7 +31,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import { usePeriodoStore } from '@/stores/periodo.js'
+import { usePeriodoStore } from '@/stores/filters/periodo.js'
 
 // Props simplificadas - solo lo esencial
 const props = defineProps({

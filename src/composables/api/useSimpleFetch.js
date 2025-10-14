@@ -25,3 +25,8 @@ export function useApiFetch() {
 
   return { loading, error, result, apiFetch }
 }
+
+// Alias para compatibilidad
+export function useSimpleFetch() {
+  return useApiFetch()
+}

@@ -1,6 +1,6 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
-import { useDgsApi } from '@/composables/useDgsApi.js'
+import { useDgsApi } from '@/composables/api/useDgsApi.js'
 
 export const usePeriodoStore = defineStore('periodo', () => {
   // Estado reactivo
