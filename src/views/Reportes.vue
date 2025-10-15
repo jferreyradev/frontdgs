@@ -1,6 +1,9 @@
 <template>
   <div class="reportes-view">
     <h1>Reportes</h1>
+    <div>
+      <PanelFiltros></PanelFiltros>
+    </div>
     <div class="contenido">
       <p>Aquí irán los reportes del sistema DGS</p>
       <div class="placeholder">
@@ -14,10 +17,47 @@
       </div>
     </div>
   </div>
+  <div><button @click="getReporte">Generar Reporte de Procesos</button></div>
 </template>
 
 <script setup>
-// Aquí irá la lógica de reportes
+import PanelFiltros from '@/components/filters/PanelFiltros.vue'
+import { useDgsApi } from '@/composables/api/useDgsApi.js'
+import { useFiltrosActivosStore } from '@/stores/filters/filtrosActivos.js'
+import { useFechaUtils } from '@/composables/useFechaUtils'
+
+import DataTable from '@/components/DataTable.vue'
+
+const { formatearFechaPrimerDia } = useFechaUtils()
+
+const filtrosStore = useFiltrosActivosStore()
+
+const { getReporteProcesos } = useDgsApi()
+
+const { periodoActivo, tipoLiquidacionActivo, grupoReparticionActivo } = filtrosStore
+
+async function getReporte() {
+  console.log('Generando reporte con filtros:', {
+    periodo: `TO_DATE('${formatearFechaPrimerDia(periodoActivo.mes, periodoActivo.año)}', 'DD/MM/YYYY')`,
+    tipoLiquidacion: tipoLiquidacionActivo.IDTIPOLIQUIDACION,
+    grupoReparticion: grupoReparticionActivo.IDGRUPO,
+  })
+
+  const filtros = {
+    periodo: `TO_DATE('${formatearFechaPrimerDia(periodoActivo.mes, periodoActivo.año)}', 'DD/MM/YYYY')`,
+    tipoLiquidacion: tipoLiquidacionActivo.IDTIPOLIQUIDACION,
+    grupoReparticion: grupoReparticionActivo.IDGRUPO,
+  }
+
+  //const result =
+
+  await getReporteProcesos({
+    periodo: `TO_DATE('${formatearFechaPrimerDia(periodoActivo.mes, periodoActivo.año)}', 'DD/MM/YYYY')`,
+    tipoLiquidacion: tipoLiquidacionActivo.IDTIPOLIQUIDACION,
+    grupoReparticion: grupoReparticionActivo.IDGRUPO,
+  })
+  //console.log('Resultado del reporte de procesos:', result)
+}
 </script>
 
 <style scoped>

@@ -94,33 +94,44 @@ export function useDgsApi() {
    * Obtiene reportes por filtros
    * @param {Object} filtros - Objeto con filtros { periodo, tipoLiquidacion, grupoReparticion }
    */
-  async function getReportes(filtros = {}) {
+
+  async function getReporteProcesos(filtros = {}) {
+    console.log('Generando reporte de procesos con filtros:', filtros)
+
     const { periodo, tipoLiquidacion, grupoReparticion } = filtros
 
     let query = `
-      SELECT
-        r.*,
-        tl.descripcion as tipo_liquidacion_desc,
-        gr.nombre as grupo_reparticion_nombre
-      FROM reportes r
-      LEFT JOIN usuario.tabtipoliquidacion tl ON r.tipo_liquidacion_id = tl.idtipoliquidacion
-      LEFT JOIN usuario.gruposreparticion gr ON r.grupo_reparticion_id = gr.id
-      WHERE 1=1
+      SELECT ec.ID_EJEC_CAB, ec.ID_PROC_CAB, PC.DESCRIPCION,
+       ec.PERIODO, ec.IDTIPOLIQ, ec.GRUPOADIC, ec.GRUPOREP, 
+       ec.FECHAHORA, ed.ESTADO, ed.NROEJEC, ed.ID_PROC_DET,
+       PD.DESCRIPCION as DESC_PROC_DET,
+       ed.ID_PROC_DEP, ed.ORDENEJEC, 
+       ED.ID_PROC_CAB_DEP, ED.ID_PROC_DET_DEP
+      from WORKFLOW.EJEC_DET ed
+      inner join WORKFLOW.EJEC_CAB ec on EC.ID_EJEC_CAB = ED.ID_EJEC_CAB
+      inner join WORKFLOW.PROC_CAB pc on PC.ID_PROC_CAB = EC.ID_PROC_CAB
+      inner join WORKFLOW.PROC_DET pd on PD.ID_PROC_DET = ED.ID_PROC_DET
+      inner join WORKFLOW.PROC_CAB_ORDEN o on O.ID_PROC_CAB = PC.ID_PROC_CAB
+      where WHERE 1=1      
     `
 
     if (periodo) {
-      query += ` AND r.periodo = '${periodo}'`
+      query += ` AND ec.periodo = ${periodo}`
     }
 
     if (tipoLiquidacion && tipoLiquidacion !== -1) {
-      query += ` AND r.tipo_liquidacion_id = ${tipoLiquidacion}`
+      query += ` AND EC.IDTIPOLIQ = ${tipoLiquidacion}`
     }
 
     if (grupoReparticion && grupoReparticion !== -1) {
-      query += ` AND r.grupo_reparticion_id = ${grupoReparticion}`
+      query += ` AND EC.GRUPOREP = ${grupoReparticion}`
     }
 
-    query += ' ORDER BY r.fecha_creacion DESC'
+    query += ' order by o.orden, ec.fechahora, ED.ORDENEJEC'
+
+    console.log('Consulta de reporte de procesos:', query)
+
+    //return '12'
 
     return await executeQuery(query)
   }
@@ -153,6 +164,6 @@ export function useDgsApi() {
     getTiposLiquidacion,
     getGruposReparticion,
     getLiquidacionesPorPeriodo,
-    getReportes,
+    getReporteProcesos,
   }
 }
