@@ -111,6 +111,9 @@
             <button @click="testConnection" class="btn-test" :disabled="loading">
               🔗 Probar Conexión
             </button>
+            <button @click="diagnosticarProblemas" class="btn-diagnostic" :disabled="loading">
+              🔍 Diagnosticar
+            </button>
             <button @click="clearQuery" class="btn-clear" :disabled="loading">🗑️ Limpiar</button>
             <button
               @click="executeQueryHandler"
@@ -392,8 +395,9 @@ import { ref, computed } from 'vue'
 import { useDgsApi } from '@/composables/api/useDgsApi.js'
 import { useFiltrosActivosStore } from '@/stores/filters/filtrosActivos.js'
 import DataTable from '@/components/DataTable.vue'
+import { diagnosticarConectividad } from '@/utils/diagnosticoConectividad.js'
 
-const { executeQuery, loading, error } = useDgsApi()
+const { executeQuery, loading, error, verificarServidorDisponible } = useDgsApi()
 const filtrosStore = useFiltrosActivosStore()
 
 const sqlQuery = ref('')
@@ -415,6 +419,31 @@ const filtrosSeleccionados = ref({
   grupoReparticion: true,
 })
 
+// Función auxiliar para validar período de forma segura
+const esPeriodoValido = (periodo) => {
+  return (
+    periodo &&
+    periodo.mes &&
+    periodo.año &&
+    typeof periodo.mes === 'number' &&
+    typeof periodo.año === 'number'
+  )
+}
+
+// Función auxiliar para acceso seguro al período activo
+const obtenerPeriodoSeguro = () => {
+  const periodo = filtrosStore.periodoActivo
+  if (!esPeriodoValido(periodo)) {
+    return null
+  }
+  return {
+    mes: periodo.mes,
+    año: periodo.año,
+    mesNombre: periodo.mesNombre || 'Mes',
+    mesFormateado: periodo.mes.toString().padStart(2, '0'),
+  }
+}
+
 // Formatos de fecha computados
 const formatosDisponibles = computed(() => {
   const formatos = generarFormatosPeriodo()
@@ -434,22 +463,19 @@ const formatosDisponibles = computed(() => {
 const whereClause = computed(() => {
   const conditions = []
 
-  // Período (mes y año) - formato TO_DATE
-  if (
-    filtrosSeleccionados.value.periodo &&
-    filtrosStore.periodoActivo &&
-    filtrosStore.periodoActivo.mes &&
-    filtrosStore.periodoActivo.año
-  ) {
-    const año = filtrosStore.periodoActivo.año
-    const mes = filtrosStore.periodoActivo.mes.toString().padStart(2, '0')
-    // Generar TO_DATE para el primer día del mes
-    const fechaInicio = `TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY')`
-    conditions.push(`FECHA_PERIODO >= ${fechaInicio}`)
+  // Período (mes y año) - formato TO_DATE - usando función auxiliar segura
+  if (filtrosSeleccionados.value.periodo) {
+    const periodoSeguro = obtenerPeriodoSeguro()
+    if (periodoSeguro) {
+      const { año, mesFormateado } = periodoSeguro
+      // Generar TO_DATE para el primer día del mes
+      const fechaInicio = `TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY')`
+      conditions.push(`FECHA_PERIODO >= ${fechaInicio}`)
 
-    // Opcional: también podemos agregar el fin del mes
-    // const fechaFin = `LAST_DAY(TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY'))`
-    // conditions.push(`FECHA_PERIODO <= ${fechaFin}`)
+      // Opcional: también podemos agregar el fin del mes
+      // const fechaFin = `LAST_DAY(TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY'))`
+      // conditions.push(`FECHA_PERIODO <= ${fechaFin}`)
+    }
   }
 
   // Tipo de liquidación
@@ -498,12 +524,10 @@ const debugFiltros = computed(() => {
 const filtrosInfo = computed(() => {
   const filtros = []
 
-  if (
-    filtrosStore.periodoActivo &&
-    filtrosStore.periodoActivo.mes &&
-    filtrosStore.periodoActivo.año
-  ) {
-    filtros.push(`📅 ${filtrosStore.periodoActivo.mesNombre} ${filtrosStore.periodoActivo.año}`)
+  // Usar función auxiliar segura para el período
+  const periodoSeguro = obtenerPeriodoSeguro()
+  if (periodoSeguro) {
+    filtros.push(`📅 ${periodoSeguro.mesNombre} ${periodoSeguro.año}`)
   }
 
   if (filtrosStore.tipoLiquidacionActivo) {
@@ -548,30 +572,27 @@ const consultasStats = computed(() => {
 
 // Funciones helper para generar diferentes formatos de fecha
 const generarFormatosPeriodo = () => {
-  if (
-    !filtrosStore.periodoActivo ||
-    !filtrosStore.periodoActivo.mes ||
-    !filtrosStore.periodoActivo.año
-  ) {
+  // Usar la función auxiliar segura
+  const periodoSeguro = obtenerPeriodoSeguro()
+  if (!periodoSeguro) {
     return {}
   }
 
-  const año = filtrosStore.periodoActivo.año
-  const mes = filtrosStore.periodoActivo.mes.toString().padStart(2, '0')
+  const { año, mesFormateado } = periodoSeguro
 
   return {
     // Formato TO_DATE para inicio del mes
-    inicioMes: `TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY')`,
+    inicioMes: `TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY')`,
 
     // Formato TO_DATE para fin del mes
-    finMes: `LAST_DAY(TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY'))`,
+    finMes: `LAST_DAY(TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY'))`,
 
     // Formato periodo como string YYYYMM
-    periodoString: `'${año}${mes}'`,
+    periodoString: `'${año}${mesFormateado}'`,
 
     // Formato año y mes separados
     año: año,
-    mes: parseInt(mes),
+    mes: parseInt(mesFormateado),
 
     // Formato para comparaciones de rango
     rangoMes: {
@@ -1092,6 +1113,93 @@ const testConnection = async () => {
   }
 }
 
+// Función de diagnóstico completo
+const diagnosticarProblemas = async () => {
+  try {
+    console.log('🔍 === INICIANDO DIAGNÓSTICO COMPLETO ===')
+
+    // Limpiar resultados
+    queryColumns.value = []
+    queryRows.value = []
+
+    // Ejecutar diagnóstico completo
+    const resultadoDiagnostico = await diagnosticarConectividad()
+
+    // Ejecutar verificación del servidor específica de DGS
+    console.log('\n🔍 Verificando disponibilidad del servidor DGS...')
+    const servidorDgs = await verificarServidorDisponible()
+
+    // Mostrar resultados en la tabla
+    queryColumns.value = ['Componente', 'Estado', 'Detalles', 'Recomendación']
+
+    const filas = []
+
+    // Información del servidor DGS
+    if (servidorDgs.disponible) {
+      filas.push({
+        Componente: '🖥️ Servidor DGS',
+        Estado: '✅ Disponible',
+        Detalles: `Endpoint: ${servidorDgs.endpoint} (${servidorDgs.status})`,
+        Recomendación: 'Servidor funcionando correctamente',
+      })
+    } else {
+      filas.push({
+        Componente: '🖥️ Servidor DGS',
+        Estado: '❌ No disponible',
+        Detalles: servidorDgs.mensaje || 'Sin respuesta',
+        Recomendación: 'Verificar que el servidor esté corriendo en el puerto correcto',
+      })
+    }
+
+    // Información de endpoints probados
+    resultadoDiagnostico.endpoints.forEach((endpoint) => {
+      filas.push({
+        Componente: `🔗 ${endpoint.url}`,
+        Estado: endpoint.disponible ? '✅ Disponible' : '❌ No disponible',
+        Detalles: endpoint.disponible
+          ? `Status: ${endpoint.status} ${endpoint.statusText}`
+          : `Error: ${endpoint.error}`,
+        Recomendación: endpoint.disponible
+          ? 'Endpoint funcionando'
+          : 'Verificar configuración proxy o servidor',
+      })
+    })
+
+    // Recomendaciones generales
+    if (resultadoDiagnostico.recomendaciones.length > 0) {
+      filas.push({
+        Componente: '💡 Recomendaciones',
+        Estado: '📋 Acción requerida',
+        Detalles: resultadoDiagnostico.recomendaciones.join(', '),
+        Recomendación: 'Seguir las sugerencias indicadas',
+      })
+    }
+
+    // Información de configuración
+    filas.push({
+      Componente: '⚙️ Configuración',
+      Estado: '📍 Info',
+      Detalles: 'Proxy: /api -> http://10.6.46.114:3011',
+      Recomendación: 'Verificar que la IP y puerto sean correctos',
+    })
+
+    queryRows.value = filas
+
+    console.log('✅ Diagnóstico completo terminado')
+    console.log('💡 Para más detalles, revisa la consola del navegador')
+  } catch (error) {
+    console.error('❌ Error ejecutando diagnóstico:', error)
+
+    queryColumns.value = ['Error', 'Detalles']
+    queryRows.value = [
+      {
+        Error: 'Error en diagnóstico',
+        Detalles: error.message,
+      },
+    ]
+  }
+}
+
 // Mostrar/ocultar formatos de fecha
 const mostrarFormatosFecha = () => {
   mostrarFormatos.value = !mostrarFormatos.value
@@ -1226,34 +1334,29 @@ const ejecutarConsultaConFiltrosPersonalizados = async (
     const filtrosAplicados = []
 
     // === FILTRO DE PERÍODO ===
-    if (
-      filtrosSeleccionados.value.periodo &&
-      filtrosStore.periodoActivo &&
-      filtrosStore.periodoActivo.mes &&
-      filtrosStore.periodoActivo.año
-    ) {
-      const año = filtrosStore.periodoActivo.año
-      const mes = filtrosStore.periodoActivo.mes.toString().padStart(2, '0')
+    if (filtrosSeleccionados.value.periodo) {
+      const periodoSeguro = obtenerPeriodoSeguro()
+      if (periodoSeguro) {
+        const { año, mesFormateado, mesNombre } = periodoSeguro
 
-      let condicionPeriodo
-      switch (formatoPeriodo) {
-        case 'TO_DATE':
-          condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY')`
-          break
-        case 'YYYYMM':
-          condicionPeriodo = `${campoPeriodo} = '${año}${mes}'`
-          break
-        case 'YYYY-MM-DD':
-          condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} '${año}-${mes}-01'`
-          break
-        default:
-          condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} TO_DATE('01/${mes}/${año}', 'DD/MM/YYYY')`
+        let condicionPeriodo
+        switch (formatoPeriodo) {
+          case 'TO_DATE':
+            condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY')`
+            break
+          case 'YYYYMM':
+            condicionPeriodo = `${campoPeriodo} = '${año}${mesFormateado}'`
+            break
+          case 'YYYY-MM-DD':
+            condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} '${año}-${mesFormateado}-01'`
+            break
+          default:
+            condicionPeriodo = `${campoPeriodo} ${operadorPeriodo} TO_DATE('01/${mesFormateado}/${año}', 'DD/MM/YYYY')`
+        }
+
+        condiciones.push(condicionPeriodo)
+        filtrosAplicados.push(`📅 Período: ${mesNombre} ${año} (${campoPeriodo})`)
       }
-
-      condiciones.push(condicionPeriodo)
-      filtrosAplicados.push(
-        `📅 Período: ${filtrosStore.periodoActivo.mesNombre} ${año} (${campoPeriodo})`,
-      )
     }
 
     // === FILTRO DE TIPO ===
@@ -1449,6 +1552,9 @@ if (typeof window !== 'undefined') {
     formatearFechaPrimerDia,
     generarFormatosFecha,
     generarFormatosPeriodo,
+    // Funciones auxiliares de validación
+    esPeriodoValido,
+    obtenerPeriodoSeguro,
     // Funciones de depuración
     debug: {
       getFiltrosSeleccionados: () => filtrosSeleccionados.value,
@@ -1474,6 +1580,38 @@ if (typeof window !== 'undefined') {
       limpiarFiltros: () => {
         filtrosStore.limpiarTodos()
         console.log('🧹 Filtros limpiados')
+      },
+      // Funciones de validación de período
+      validarPeriodo: (periodo) => {
+        const esValido = esPeriodoValido(periodo)
+        console.log('🔍 Validación de período:', { periodo, esValido })
+        return esValido
+      },
+      obtenerPeriodoActualSeguro: () => {
+        const periodo = obtenerPeriodoSeguro()
+        console.log('🔍 Período actual seguro:', periodo)
+        return periodo
+      },
+      probarValidacionPeriodo: () => {
+        console.log('🧪 Probando validaciones de período:')
+
+        const casos = [
+          null,
+          undefined,
+          {},
+          { mes: null, año: 2025 },
+          { mes: 10, año: null },
+          { mes: '10', año: '2025' }, // strings no válidos
+          { mes: 10, año: 2025 }, // válido
+          { mes: 13, año: 2025 }, // mes inválido
+          { mes: 0, año: 2025 }, // mes inválido
+          { mes: 10, año: 2025, mesNombre: 'Octubre' }, // válido con nombre
+        ]
+
+        casos.forEach((caso, index) => {
+          const esValido = esPeriodoValido(caso)
+          console.log(`  ${index + 1}. ${JSON.stringify(caso)} → ${esValido ? '✅' : '❌'}`)
+        })
       },
     },
   }
@@ -2172,7 +2310,8 @@ if (typeof window !== 'undefined') {
 
 .btn-clear,
 .btn-execute,
-.btn-test {
+.btn-test,
+.btn-diagnostic {
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
@@ -2209,9 +2348,19 @@ if (typeof window !== 'undefined') {
   background-color: #218838;
 }
 
+.btn-diagnostic {
+  background-color: #fd7e14;
+  color: white;
+}
+
+.btn-diagnostic:hover:not(:disabled) {
+  background-color: #e8650e;
+}
+
 .btn-clear:disabled,
 .btn-execute:disabled,
-.btn-test:disabled {
+.btn-test:disabled,
+.btn-diagnostic:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }

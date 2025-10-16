@@ -20,7 +20,11 @@
         <span class="row-count"
           >📊 {{ rows.length }} registro{{ rows.length !== 1 ? 's' : '' }}</span
         >
-        <button @click="exportToCSV" class="btn-export">📥 Exportar CSV</button>
+        <div class="export-buttons">
+          <button @click="exportarCSV" class="btn-export btn-csv">📄 CSV</button>
+          <button @click="exportarExcel" class="btn-export btn-excel">� Excel</button>
+          <button @click="exportarJSON" class="btn-export btn-json">📋 JSON</button>
+        </div>
       </div>
 
       <div class="table-scroll">
@@ -47,6 +51,7 @@
 
 <script setup>
 import { computed } from 'vue'
+import { exportCSV, exportJSON, exportExcel } from '@/utils/exportTable.js'
 
 const props = defineProps({
   columns: {
@@ -65,6 +70,10 @@ const props = defineProps({
     type: String,
     default: null,
   },
+  titulo: {
+    type: String,
+    default: 'consulta',
+  },
 })
 
 const formatCellValue = (value) => {
@@ -77,38 +86,35 @@ const formatCellValue = (value) => {
   return String(value)
 }
 
-const exportToCSV = () => {
+// Funciones de exportación usando las utilidades existentes
+const generarNombreArchivo = (extension) => {
+  const nombre = props.titulo.toLowerCase().replace(/\s+/g, '_')
+  const fecha = new Date().toISOString().split('T')[0]
+  return `${nombre}_${fecha}.${extension}`
+}
+
+const exportarCSV = () => {
   if (props.columns.length === 0 || props.rows.length === 0) {
     return
   }
+  const nombreArchivo = generarNombreArchivo('csv')
+  exportCSV(props.columns, props.rows, nombreArchivo)
+}
 
-  // Crear CSV content
-  const csvContent = [
-    // Headers
-    props.columns.join(','),
-    // Rows
-    ...props.rows.map((row) =>
-      props.columns
-        .map((column) => {
-          const value = row[column]
-          // Escapar comillas y envolver en comillas si contiene comas
-          const stringValue = formatCellValue(value)
-          return stringValue.includes(',') ? `"${stringValue.replace(/"/g, '""')}"` : stringValue
-        })
-        .join(','),
-    ),
-  ].join('\n')
+const exportarExcel = () => {
+  if (props.columns.length === 0 || props.rows.length === 0) {
+    return
+  }
+  const nombreArchivo = generarNombreArchivo('xls')
+  exportExcel(props.columns, props.rows, nombreArchivo)
+}
 
-  // Crear y descargar archivo
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-  const link = document.createElement('a')
-  const url = URL.createObjectURL(blob)
-  link.setAttribute('href', url)
-  link.setAttribute('download', `consulta_${new Date().toISOString().split('T')[0]}.csv`)
-  link.style.visibility = 'hidden'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
+const exportarJSON = () => {
+  if (props.columns.length === 0 || props.rows.length === 0) {
+    return
+  }
+  const nombreArchivo = generarNombreArchivo('json')
+  exportJSON(props.rows, nombreArchivo)
 }
 </script>
 
@@ -182,19 +188,44 @@ const exportToCSV = () => {
   color: #495057;
 }
 
-.btn-export {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
-  transition: background-color 0.2s ease;
+.export-buttons {
+  display: flex;
+  gap: 0.5rem;
 }
 
-.btn-export:hover {
+.btn-export {
+  border: none;
+  padding: 0.4rem 0.8rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  color: white;
+}
+
+.btn-csv {
+  background-color: #28a745;
+}
+
+.btn-csv:hover {
   background-color: #218838;
+}
+
+.btn-excel {
+  background-color: #17a2b8;
+}
+
+.btn-excel:hover {
+  background-color: #138496;
+}
+
+.btn-json {
+  background-color: #6f42c1;
+}
+
+.btn-json:hover {
+  background-color: #5a32a3;
 }
 
 .table-scroll {
@@ -254,6 +285,16 @@ const exportToCSV = () => {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+  }
+
+  .export-buttons {
+    justify-content: center;
+  }
+
+  .btn-export {
+    flex: 1;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
   }
 
   .table-scroll {
