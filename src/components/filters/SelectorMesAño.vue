@@ -1,14 +1,15 @@
 <template>
-  <div class="mes-año-selector-compact">
-    <div class="selector-row">
+  <div class="selector-compacto">
+    <div class="fila-selector">
       <select
         :value="mesSeleccionado"
         @change="actualizarMes($event.target.value)"
         class="select-mes"
+        title="Seleccionar mes"
       >
         <option value="">Mes</option>
         <option v-for="mes in meses" :key="mes.valor" :value="mes.valor">
-          {{ mes.nombre }}
+          {{ mes.nombre.substring(0, 3) }}
         </option>
       </select>
 
@@ -16,6 +17,7 @@
         :value="añoSeleccionado"
         @change="actualizarAño($event.target.value)"
         class="select-año"
+        title="Seleccionar año"
       >
         <option value="">Año</option>
         <option v-for="año in años" :key="año" :value="año">
@@ -23,8 +25,21 @@
         </option>
       </select>
 
-      <button @click="establecerHoy" class="btn-hoy" title="Establecer mes/año actual">📅</button>
-      <button @click="limpiarSeleccion" class="btn-limpiar" title="Limpiar selección">✕</button>
+      <button @click="establecerHoy" class="btn-pequeno btn-hoy" title="Mes/año actual">📅</button>
+
+      <button
+        @click="limpiarSeleccion"
+        class="btn-pequeno btn-limpiar"
+        title="Limpiar selección"
+        :disabled="!mesSeleccionado && !añoSeleccionado"
+      >
+        ✕
+      </button>
+    </div>
+
+    <!-- Indicador visual cuando hay selección -->
+    <div v-if="mesSeleccionado && añoSeleccionado" class="indicador-seleccion">
+      {{ nombreMesSeleccionado }} {{ añoSeleccionado }}
     </div>
   </div>
 </template>
@@ -234,64 +249,196 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.mes-año-selector-compact {
+.selector-compacto {
   width: 100%;
+  max-width: 300px;
 }
 
-.selector-row {
+/* Fila principal compacta - SIEMPRE EN UNA FILA */
+.fila-selector {
   display: flex;
-  gap: 6px;
+  gap: 4px;
   align-items: center;
+  flex-wrap: nowrap; /* Nunca wrap */
 }
 
+/* Selectores compactos */
 .select-mes,
 .select-año {
-  flex: 1;
-  padding: 6px 8px;
-  border: 1px solid #ccc;
-  border-radius: 3px;
-  background-color: white;
-  font-size: 13px;
-  min-width: 70px;
+  flex: 1 1 auto;
+  padding: 4px 6px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  background: white;
+  font-size: 12px;
+  color: #495057;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 55px; /* Mínimo para que quepa el texto */
+  max-width: 80px; /* Máximo para no dominar */
+}
+
+.select-mes {
+  min-width: 55px;
+  max-width: 70px;
+}
+
+.select-año {
+  min-width: 55px;
+  max-width: 75px;
 }
 
 .select-mes:focus,
 .select-año:focus {
   outline: none;
   border-color: #007bff;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.15);
 }
 
-.btn-hoy,
-.btn-limpiar {
-  flex: 0 0 auto;
-  width: 26px;
-  height: 32px;
+.select-mes:hover,
+.select-año:hover {
+  border-color: #adb5bd;
+}
+
+/* Botones pequeños */
+.btn-pequeno {
+  flex: 0 0 24px; /* Tamaño fijo y no crece */
+  width: 24px;
+  height: 24px;
   border: none;
-  border-radius: 3px;
+  border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .btn-hoy {
-  background-color: #28a745;
+  background: #28a745;
   color: white;
 }
 
 .btn-hoy:hover {
-  background-color: #218838;
+  background: #218838;
+  transform: scale(1.05);
 }
 
 .btn-limpiar {
-  background-color: #dc3545;
+  background: #6c757d;
   color: white;
   font-weight: bold;
 }
 
-.btn-limpiar:hover {
-  background-color: #c82333;
+.btn-limpiar:hover:not(:disabled) {
+  background: #5a6268;
+  transform: scale(1.05);
+}
+
+.btn-limpiar:disabled {
+  background: #e9ecef;
+  color: #adb5bd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Indicador de selección */
+.indicador-seleccion {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  text-align: center;
+  border-left: 3px solid #2196f3;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive para móviles - MANTENER UNA SOLA FILA */
+@media (max-width: 480px) {
+  .selector-compacto {
+    max-width: 100%;
+  }
+
+  .fila-selector {
+    gap: 3px; /* Reducir gap para más espacio */
+  }
+
+  .select-mes,
+  .select-año {
+    font-size: 11px;
+    padding: 3px 4px;
+    min-width: 45px;
+    max-width: 65px;
+  }
+
+  .btn-pequeno {
+    width: 22px;
+    height: 22px;
+    font-size: 9px;
+    flex: 0 0 22px;
+  }
+
+  .indicador-seleccion {
+    font-size: 10px;
+    margin-top: 4px;
+    padding: 2px 6px;
+  }
+}
+
+/* Para pantallas muy pequeñas - AÚN MÁS COMPACTO PERO UNA FILA */
+@media (max-width: 320px) {
+  .fila-selector {
+    gap: 2px; /* Gap mínimo */
+  }
+
+  .select-mes,
+  .select-año {
+    font-size: 10px;
+    padding: 2px 3px;
+    min-width: 40px;
+    max-width: 55px;
+  }
+
+  .btn-pequeno {
+    width: 20px;
+    height: 20px;
+    font-size: 8px;
+    flex: 0 0 20px;
+  }
+}
+
+/* Mejoras de accesibilidad */
+.select-mes:focus-visible,
+.select-año:focus-visible,
+.btn-pequeno:focus-visible {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+/* Hover states más suaves */
+.select-mes:hover,
+.select-año:hover {
+  background: #f8f9fa;
+}
+
+/* Estados de carga/disabled */
+.selector-compacto:disabled * {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 </style>

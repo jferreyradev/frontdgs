@@ -25,6 +25,9 @@
       :loading="cargando"
       :error="error"
       :titulo="props.titulo"
+      :selection-mode="props.selectionMode"
+      :show-checkboxes="props.showCheckboxes"
+      @seleccion-cambio="$emit('seleccion-cambio', $event)"
     />
   </div>
 </template>
@@ -41,6 +44,8 @@ const props = defineProps({
   consulta: { type: String, required: true },
   variables: { type: Object, default: () => ({}) },
   mostrarFiltros: { type: Boolean, default: true },
+  selectionMode: { type: String, default: 'multiple' },
+  showCheckboxes: { type: Boolean, default: true },
 })
 
 // Estado
@@ -51,8 +56,70 @@ const columnas = ref([])
 const datos = ref([])
 const error = ref(null)
 
+// Emits
+const emit = defineEmits(['seleccion-cambio'])
+
 // Composables
 const { executeQuery } = useDgsApi()
+
+// Función para extraer columnas en el orden correcto del SQL
+function extraerColumnasDelSQL(sql) {
+  try {
+    // Buscar la parte SELECT hasta FROM
+    const selectMatch = sql.match(/SELECT\s+(.*?)\s+FROM/is)
+    if (!selectMatch) return null
+
+    const selectPart = selectMatch[1]
+
+    // Dividir por comas, pero respetando paréntesis y funciones
+    const columnas = []
+    let nivelParentesis = 0
+    let columnaActual = ''
+
+    for (let i = 0; i < selectPart.length; i++) {
+      const char = selectPart[i]
+
+      if (char === '(') {
+        nivelParentesis++
+        columnaActual += char
+      } else if (char === ')') {
+        nivelParentesis--
+        columnaActual += char
+      } else if (char === ',' && nivelParentesis === 0) {
+        // Es una coma separadora de columnas
+        columnas.push(columnaActual.trim())
+        columnaActual = ''
+      } else {
+        columnaActual += char
+      }
+    }
+
+    // Agregar la última columna
+    if (columnaActual.trim()) {
+      columnas.push(columnaActual.trim())
+    }
+
+    // Extraer nombres de alias o nombres de columna
+    return columnas.map((col) => {
+      // Buscar alias (AS nombre o simplemente nombre al final)
+      const aliasMatch = col.match(/\s+as\s+([a-zA-Z_][a-zA-Z0-9_]*)\s*$/i)
+      if (aliasMatch) {
+        return aliasMatch[1]
+      }
+
+      // Si no hay alias, buscar el nombre de la columna (después del último punto)
+      const nombreMatch = col.match(/([a-zA-Z_][a-zA-Z0-9_]*)\s*$/)
+      if (nombreMatch) {
+        return nombreMatch[1]
+      }
+
+      return col.trim()
+    })
+  } catch (error) {
+    console.warn('⚠️ No se pudo extraer orden de columnas del SQL:', error)
+    return null
+  }
+}
 
 // Función principal - COMPLETAMENTE GENERALIZADA
 async function ejecutar() {
@@ -85,7 +152,32 @@ async function ejecutar() {
     const resultado = await executeQuery(sql)
 
     if (resultado?.length > 0) {
-      columnas.value = Object.keys(resultado[0])
+      // Intentar extraer orden de columnas del SQL
+      const columnasOrdenadas = extraerColumnasDelSQL(sql)
+
+      if (columnasOrdenadas && columnasOrdenadas.length > 0) {
+        console.log('✅ Columnas extraídas del SQL (en orden):', columnasOrdenadas)
+
+        // Verificar que todas las columnas existen en los datos
+        const columnasDisponibles = Object.keys(resultado[0])
+        const columnasValidas = columnasOrdenadas.filter((col) =>
+          columnasDisponibles.some((disponible) => disponible.toLowerCase() === col.toLowerCase()),
+        )
+
+        // Agregar columnas que no estaban en el SELECT pero sí en los datos
+        const columnasFaltantes = columnasDisponibles.filter(
+          (disponible) =>
+            !columnasValidas.some((valida) => valida.toLowerCase() === disponible.toLowerCase()),
+        )
+
+        columnas.value = [...columnasValidas, ...columnasFaltantes]
+        console.log('📊 Orden final de columnas:', columnas.value)
+      } else {
+        // Fallback al método original
+        console.log('⚠️ Usando orden por defecto (Object.keys)')
+        columnas.value = Object.keys(resultado[0])
+      }
+
       datos.value = resultado
       mostrarMensaje(`${resultado.length} registros encontrados`, 'success')
     } else {

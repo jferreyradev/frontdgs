@@ -78,7 +78,7 @@ const toggleSidebar = () => {
   transition: all 0.3s ease;
   flex-direction: column;
   gap: 3px;
-  width: 30px;
+  width: 10px;
   height: 30px;
   justify-content: center;
   align-items: center;
@@ -103,7 +103,7 @@ const toggleSidebar = () => {
 }
 
 .app-sidebar {
-  width: 320px;
+  width: 150px;
   background-color: #ffffff;
   border-right: 1px solid #e9ecef;
   min-height: calc(100vh - 80px);
@@ -158,7 +158,7 @@ const toggleSidebar = () => {
     position: fixed;
     top: 80px; /* Altura del header */
     left: 0;
-    width: 280px;
+    width: 140px;
     height: calc(100vh - 80px);
     transform: translateX(-100%);
     z-index: 1000;
@@ -206,7 +206,7 @@ const toggleSidebar = () => {
 /* Large screens */
 @media (min-width: 1200px) {
   .app-sidebar {
-    width: 350px;
+    width: 150px;
   }
 }
 </style>

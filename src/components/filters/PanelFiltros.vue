@@ -139,6 +139,7 @@ watch(
 .filtro-campo {
   flex: 1;
   min-width: 150px;
+  padding: 5px 0;
 }
 
 .filtro-label {
