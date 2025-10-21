@@ -6,7 +6,7 @@
 </template>
 
 <script setup>
-import PanelFiltros from '../components/filters/PanelFiltros.vue'
+import PanelFiltros from '../components/filters/FiltroLiq.vue'
 </script>
 
 <style scoped></style>

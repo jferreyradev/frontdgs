@@ -29,6 +29,11 @@
           {{ store.grupoReparticionActivo.descripcion || store.grupoReparticionActivo.DESCRIPCION }}
         </div>
 
+        <div v-if="store.grupoSicoreActivo" class="filtro-item">
+          🏢
+          {{ store.grupoSicoreActivo.descripcion || store.grupoSicoreActivo.DESCRIPCION }}
+        </div>
+
         <button @click.stop="limpiarTodos" class="btn-limpiar">✕ Limpiar</button>
       </div>
 

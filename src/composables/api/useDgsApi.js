@@ -9,7 +9,7 @@ export function useDgsApi() {
 
   // Configuración base de la API
   const API_BASE_URL = '/api'
-  const DEFAULT_AUTH_TOKEN = 'Bearer apiDG$prod'
+  const DEFAULT_AUTH_TOKEN = 'Bearer test2'
 
   /**
    * Verifica si el servidor backend está disponible
@@ -143,6 +143,18 @@ export function useDgsApi() {
   }
 
   /**
+   * Obtiene todos los grupos de sicore
+   */
+  async function getGruposSicore() {
+    try {
+      return await executeQuery('SELECT * FROM usuario.tabgruposicore ORDER BY 1')
+    } catch (error) {
+      console.error('Error en getGruposSicore:', error.message)
+      throw error
+    }
+  }
+
+  /**
    * Obtiene todos los grupos de repartición
    */
   async function getGruposReparticion() {
@@ -150,6 +162,65 @@ export function useDgsApi() {
       return await executeQuery('SELECT * FROM usuario.gruposreparticion ORDER BY 1')
     } catch (error) {
       console.error('Error en getGruposReparticion:', error.message)
+      throw error
+    }
+  }
+
+  /**
+   * Métodos simples para combos comunes
+   */
+  async function getUsuarios() {
+    try {
+      return await executeQuery(
+        'SELECT id, nombre, email FROM usuarios WHERE activo = 1 ORDER BY nombre',
+      )
+    } catch (error) {
+      console.error('Error en getUsuarios:', error.message)
+      throw error
+    }
+  }
+
+  async function getDepartamentos() {
+    try {
+      return await executeQuery(
+        'SELECT id, nombre, codigo FROM departamentos WHERE activo = 1 ORDER BY nombre',
+      )
+    } catch (error) {
+      console.error('Error en getDepartamentos:', error.message)
+      throw error
+    }
+  }
+
+  async function getCargos() {
+    try {
+      return await executeQuery(
+        'SELECT id, nombre, descripcion FROM cargos WHERE activo = 1 ORDER BY nombre',
+      )
+    } catch (error) {
+      console.error('Error en getCargos:', error.message)
+      throw error
+    }
+  }
+
+  async function getProvincias() {
+    try {
+      return await executeQuery('SELECT id, nombre, codigo FROM provincias ORDER BY nombre')
+    } catch (error) {
+      console.error('Error en getProvincias:', error.message)
+      throw error
+    }
+  }
+
+  async function getCiudades(provinciaId = null) {
+    try {
+      let query = 'SELECT id, nombre, provincia_id FROM ciudades WHERE 1=1'
+      if (provinciaId) {
+        query += ` AND provincia_id = ${provinciaId}`
+      }
+      query += ' ORDER BY nombre'
+      return await executeQuery(query)
+    } catch (error) {
+      console.error('Error en getCiudades:', error.message)
       throw error
     }
   }
@@ -286,8 +357,16 @@ export function useDgsApi() {
     // Funciones específicas
     getPeriodoActivo,
     getTiposLiquidacion,
+    getGruposSicore,
     getGruposReparticion,
     getLiquidacionesPorPeriodo,
     getReporteProcesos,
+
+    // Funciones para combos comunes
+    getUsuarios,
+    getDepartamentos,
+    getCargos,
+    getProvincias,
+    getCiudades,
   }
 }

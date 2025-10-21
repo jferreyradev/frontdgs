@@ -17,12 +17,49 @@
           <span class="nav-label">Dashboard</span>
         </router-link>
       </li>
-      <li>
-        <router-link to="/reportes" class="nav-item">
+
+      <!-- Menú de Reportes con subitems -->
+      <li class="nav-item-with-submenu">
+        <div class="nav-item nav-parent" @click="toggleReportes">
           <span class="nav-icon">📋</span>
           <span class="nav-label">Reportes</span>
-        </router-link>
+          <span class="nav-arrow" :class="{ expanded: reportesExpanded }">▶</span>
+        </div>
+
+        <ul class="submenu" :class="{ expanded: reportesExpanded }">
+          <li>
+            <router-link to="/reportes" class="nav-item submenu-item">
+              <span class="nav-icon"></span>
+              <span class="nav-label">Procesos</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/reportes/reposicore" class="nav-item submenu-item">
+              <span class="nav-icon"></span>
+              <span class="nav-label">Sicore</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/reportes/inventario" class="nav-item submenu-item">
+              <span class="nav-icon">�</span>
+              <span class="nav-label">Inventario</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/reportes/usuarios" class="nav-item submenu-item">
+              <span class="nav-icon">👥</span>
+              <span class="nav-label">Usuarios</span>
+            </router-link>
+          </li>
+          <li>
+            <router-link to="/reportes/financiero" class="nav-item submenu-item">
+              <span class="nav-icon">💳</span>
+              <span class="nav-label">Financiero</span>
+            </router-link>
+          </li>
+        </ul>
       </li>
+
       <li>
         <router-link to="/consultas" class="nav-item">
           <span class="nav-icon">🔍</span>
@@ -40,7 +77,29 @@
 </template>
 
 <script setup>
-// Navegación lateral
+import { ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
+
+const route = useRoute()
+
+// Estado del menú de reportes
+const reportesExpanded = ref(false)
+
+// Función para alternar el menú de reportes
+const toggleReportes = () => {
+  reportesExpanded.value = !reportesExpanded.value
+}
+
+// Expandir automáticamente si estamos en una ruta de reportes
+watch(
+  () => route.path,
+  (newPath) => {
+    if (newPath.startsWith('/reportes')) {
+      reportesExpanded.value = true
+    }
+  },
+  { immediate: true },
+)
 </script>
 
 <style scoped>
@@ -121,11 +180,82 @@
   line-height: 1.3;
 }
 
+/* Estilos para menú con subitems */
+.nav-item-with-submenu {
+  position: relative;
+}
+
+.nav-parent {
+  cursor: pointer;
+  position: relative;
+  padding-right: 1.2rem !important;
+}
+
+.nav-arrow {
+  position: absolute;
+  right: 0.2rem;
+  font-size: 0.6rem;
+  transition: transform 0.2s ease;
+  color: #6c757d;
+}
+
+.nav-arrow.expanded {
+  transform: rotate(90deg);
+}
+
+.submenu {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 0.3s ease;
+  background-color: #f8f9fa;
+  border-radius: 0 0 4px 4px;
+}
+
+.submenu.expanded {
+  max-height: 200px;
+}
+
+.submenu-item {
+  padding: 0.3rem 0 0.3rem 1.2rem !important;
+  font-size: 0.7rem;
+  border-left: 2px solid transparent;
+  margin-bottom: 0.02rem;
+}
+
+.submenu-item:hover {
+  background-color: #e9ecef;
+  padding-left: 1.4rem !important;
+}
+
+.submenu-item.router-link-active {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border-left-color: #17a2b8;
+  font-weight: 500;
+  padding-left: 1.4rem !important;
+}
+
+.submenu-item .nav-icon {
+  font-size: 0.7rem;
+  width: 14px;
+}
+
+.submenu-item .nav-label {
+  font-size: 0.7rem;
+}
+
 /* Responsive adjustments */
 @media (max-width: 1200px) {
   .sidebar-nav {
     --sidebar-width: 120px;
     --sidebar-min-width: 100px;
+  }
+
+  .submenu-item .nav-label {
+    font-size: 0.65rem;
   }
 }
 
@@ -153,6 +283,19 @@
   .nav-label {
     font-size: 0.85rem;
     font-weight: 500;
+  }
+
+  /* Ocultar texto de subitems en pantallas pequeñas */
+  .submenu-item .nav-label {
+    display: none;
+  }
+
+  .submenu-item {
+    padding: 0.4rem 0 0.4rem 0.8rem !important;
+  }
+
+  .submenu-item .nav-icon {
+    font-size: 0.8rem;
   }
 }
 

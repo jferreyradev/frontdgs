@@ -34,7 +34,7 @@
 
 <script setup>
 import { ref } from 'vue'
-import PanelFiltros from '@/components/filters/PanelFiltros.vue'
+import PanelFiltros from '@/components/filters/FiltroLiq.vue'
 import DataTable from '@/components/DataTable.vue'
 import { useDgsApi } from '@/composables/api/useDgsApi.js'
 

@@ -6,11 +6,17 @@ export const useFiltrosActivosStore = defineStore('filtrosActivos', () => {
   const periodoActivo = ref(null)
   const tipoLiquidacionActivo = ref(null)
   const grupoReparticionActivo = ref(null)
+  const grupoSicoreActivo = ref(null)
 
   // Computados básicos
   const hayFiltrosActivos = computed(() => {
     const periodoValido = periodoActivo.value && periodoActivo.value.mes && periodoActivo.value.año
-    return !!periodoValido || !!tipoLiquidacionActivo.value || !!grupoReparticionActivo.value
+    return (
+      !!periodoValido ||
+      !!tipoLiquidacionActivo.value ||
+      !!grupoReparticionActivo.value ||
+      !!grupoSicoreActivo.value
+    )
   })
 
   const contadorFiltros = computed(() => {
@@ -21,10 +27,12 @@ export const useFiltrosActivosStore = defineStore('filtrosActivos', () => {
     }
     if (tipoLiquidacionActivo.value) contador++
     if (grupoReparticionActivo.value) contador++
+    if (grupoSicoreActivo.value) contador++
     console.log('📊 contadorFiltros calculado:', contador, {
       periodo: periodoActivo.value,
       tipo: tipoLiquidacionActivo.value,
       grupo: grupoReparticionActivo.value,
+      sicore: grupoSicoreActivo.value,
     })
     return contador
   })
@@ -42,12 +50,18 @@ export const useFiltrosActivosStore = defineStore('filtrosActivos', () => {
     grupoReparticionActivo.value = grupo
   }
 
+  function setGrupoSicore(grupo) {
+    console.log('🎯 Estableciendo grupo SICORE:', grupo)
+    grupoSicoreActivo.value = grupo
+  }
+
   // Función para limpiar todo
   function limpiarTodos() {
     console.log('🧹 Limpiando todos los filtros')
     periodoActivo.value = null
     tipoLiquidacionActivo.value = null
     grupoReparticionActivo.value = null
+    grupoSicoreActivo.value = null
     console.log('🧹 Filtros limpiados. Contador:', contadorFiltros.value)
   }
 
@@ -56,6 +70,7 @@ export const useFiltrosActivosStore = defineStore('filtrosActivos', () => {
     periodoActivo,
     tipoLiquidacionActivo,
     grupoReparticionActivo,
+    grupoSicoreActivo,
 
     // Computados
     hayFiltrosActivos,
@@ -65,6 +80,7 @@ export const useFiltrosActivosStore = defineStore('filtrosActivos', () => {
     setPeriodo,
     setTipoLiquidacion,
     setGrupoReparticion,
+    setGrupoSicore,
     limpiarTodos,
   }
 })
